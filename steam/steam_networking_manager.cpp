@@ -222,13 +222,9 @@ std::string SteamNetworkingManager::getConnectionRelayInfo(HSteamNetConnection c
         {
             return "中继";
         }
-        else if (info.m_nFlags & k_nSteamNetworkConnectionInfoFlags_Fast)
-        {
-            return "直连";
-        }
         else
         {
-            return "未知";
+            return "直连";
         }
     }
     return "N/A";
