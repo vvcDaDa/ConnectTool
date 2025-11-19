@@ -16,8 +16,7 @@ void SteamNetworkingManager::OnSteamNetConnectionStatusChanged(SteamNetConnectio
 SteamNetworkingManager::SteamNetworkingManager()
     : m_pInterface(nullptr), hListenSock(k_HSteamListenSocket_Invalid), g_isHost(false), g_isClient(false), g_isConnected(false),
       g_hConnection(k_HSteamNetConnection_Invalid),
-      io_context_(nullptr), clientMap_(nullptr), clientMutex_(nullptr), server_(nullptr), localPort_(nullptr), messageHandler_(nullptr),
-      roomManager_(nullptr)
+      io_context_(nullptr), clientMap_(nullptr), clientMutex_(nullptr), server_(nullptr), localPort_(nullptr), messageHandler_(nullptr)
 {
     std::cout << "Initialized SteamNetworkingManager" << std::endl;
 }
@@ -26,7 +25,6 @@ SteamNetworkingManager::~SteamNetworkingManager()
 {
     stopMessageHandler();
     delete messageHandler_;
-    delete roomManager_;
     shutdown();
 }
 
@@ -85,36 +83,19 @@ bool SteamNetworkingManager::initialize()
         &allowWithoutAuth);
 
     // Create callbacks after Steam API init
-    roomManager_ = new SteamRoomManager(this);
-
     SteamNetworkingUtils()->InitRelayNetworkAccess();
     SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(OnSteamNetConnectionStatusChanged);
 
     m_pInterface = SteamNetworkingSockets();
 
-    // Clear Rich Presence on startup
-    SteamFriends()->ClearRichPresence();
-    std::cout << "Cleared Rich Presence on startup" << std::endl;
-
     // Check if callbacks are registered
     std::cout << "Steam API initialized" << std::endl;
-
-    // Get friends list
-    int friendCount = SteamFriends()->GetFriendCount(k_EFriendFlagAll);
-    for (int i = 0; i < friendCount; ++i)
-    {
-        CSteamID friendID = SteamFriends()->GetFriendByIndex(i, k_EFriendFlagAll);
-        const char *name = SteamFriends()->GetFriendPersonaName(friendID);
-        friendsList.push_back({friendID, name});
-    }
 
     return true;
 }
 
 void SteamNetworkingManager::shutdown()
 {
-    if (roomManager_)
-        roomManager_->leaveLobby();
     if (g_hConnection != k_HSteamNetConnection_Invalid)
     {
         m_pInterface->CloseConnection(g_hConnection, 0, nullptr, false);
@@ -123,64 +104,7 @@ void SteamNetworkingManager::shutdown()
     {
         m_pInterface->CloseListenSocket(hListenSock);
     }
-    // Clear Rich Presence on shutdown
-    SteamFriends()->ClearRichPresence();
     SteamAPI_Shutdown();
-}
-
-bool SteamNetworkingManager::createLobby()
-{
-    if (roomManager_)
-        return roomManager_->createLobby();
-    return false;
-}
-
-void SteamNetworkingManager::leaveLobby()
-{
-    if (roomManager_)
-        roomManager_->leaveLobby();
-}
-
-bool SteamNetworkingManager::searchLobbies()
-{
-    if (roomManager_)
-        return roomManager_->searchLobbies();
-    return false;
-}
-
-bool SteamNetworkingManager::joinLobby(CSteamID lobbyID)
-{
-    if (roomManager_)
-        return roomManager_->joinLobby(lobbyID);
-    return false;
-}
-
-const std::vector<CSteamID>& SteamNetworkingManager::getLobbies() const
-{
-    static std::vector<CSteamID> empty;
-    if (roomManager_)
-        return roomManager_->getLobbies();
-    return empty;
-}
-
-CSteamID SteamNetworkingManager::getCurrentLobby() const
-{
-    if (roomManager_)
-        return roomManager_->getCurrentLobby();
-    return k_steamIDNil;
-}
-
-bool SteamNetworkingManager::startHosting()
-{
-    if (roomManager_)
-        return roomManager_->startHosting();
-    return false;
-}
-
-void SteamNetworkingManager::stopHosting()
-{
-    if (roomManager_)
-        roomManager_->stopHosting();
 }
 
 bool SteamNetworkingManager::joinHost(uint64 hostID)

@@ -6,9 +6,11 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
 #include <isteamnetworkingsockets.h>
 #include <isteamnetworkingutils.h>
 #include <steamnetworkingtypes.h>
+#include "../multiplex/multiplex_manager.h"
 
 class SteamNetworkingManager;
 
@@ -25,10 +27,11 @@ public:
     void sendToAll(const std::string& message, std::shared_ptr<tcp::socket> excludeSocket = nullptr);
     void sendToAll(const char* data, size_t size, std::shared_ptr<tcp::socket> excludeSocket = nullptr);
     int getClientCount();
+    MultiplexManager* getMultiplexManager() { return multiplexManager_.get(); }
 
 private:
     void start_accept();
-    void start_read(std::shared_ptr<tcp::socket> socket);
+    void start_read(std::shared_ptr<tcp::socket> socket, uint32_t id);
 
     int port_;
     bool running_;
@@ -38,7 +41,6 @@ private:
     std::vector<std::shared_ptr<tcp::socket>> clients_;
     std::mutex clientsMutex_;
     std::thread serverThread_;
-    bool hasAcceptedConnection_;
     SteamNetworkingManager* manager_;
-    bool forwarding_;
+    std::unique_ptr<MultiplexManager> multiplexManager_;
 };

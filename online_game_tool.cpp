@@ -15,6 +15,8 @@
 #include "tcp_server.h"
 #include "tcp/tcp_client.h"
 #include "steam/steam_networking_manager.h"
+#include "steam/steam_room_manager.h"
+#include "steam/steam_utils.h"
 
 using boost::asio::ip::tcp;
 
@@ -35,6 +37,9 @@ int main() {
         std::cerr << "Failed to initialize Steam Networking Manager" << std::endl;
         return 1;
     }
+
+    // Initialize Steam Room Manager
+    SteamRoomManager roomManager(&steamManager);
 
     // Initialize GLFW
     if (!glfwInit()) {
@@ -81,7 +86,7 @@ int main() {
     auto renderInviteFriends = [&]() {
         ImGui::InputText("过滤朋友", filterBuffer, IM_ARRAYSIZE(filterBuffer));
         ImGui::Text("朋友:");
-        for (const auto& friendPair : steamManager.getFriendsList()) {
+        for (const auto& friendPair : SteamUtils::getFriendsList()) {
             std::string nameStr = friendPair.second;
             std::string filterStr(filterBuffer);
             // Convert to lowercase for case-insensitive search
@@ -91,7 +96,7 @@ int main() {
                 ImGui::PushID(friendPair.first.ConvertToUint64());
                 if (ImGui::Button(("邀请 " + friendPair.second).c_str())) {
                     // Send invite via Steam with lobby ID as connect string
-                    std::string connectStr = std::to_string(steamManager.getCurrentLobby().ConvertToUint64());
+                    std::string connectStr = std::to_string(roomManager.getCurrentLobby().ConvertToUint64());
                     // Safety check for SteamFriends
                     if (SteamFriends()) {
                         SteamFriends()->InviteUserToGame(friendPair.first, connectStr.c_str());
@@ -131,10 +136,10 @@ int main() {
 
         if (!steamManager.isHost() && !steamManager.isConnected()) {
             if (ImGui::Button("主持游戏房间")) {
-                steamManager.startHosting();
+                roomManager.startHosting();
             }
             if (ImGui::Button("搜索游戏房间")) {
-                steamManager.searchLobbies();
+                roomManager.searchLobbies();
             }
             ImGui::InputText("主机Steam ID", joinBuffer, IM_ARRAYSIZE(joinBuffer));
             if (ImGui::Button("加入游戏房间")) {
@@ -148,12 +153,12 @@ int main() {
                 }
             }
             // Display available lobbies
-            if (!steamManager.getLobbies().empty()) {
+            if (!roomManager.getLobbies().empty()) {
                 ImGui::Text("可用房间:");
-                for (const auto& lobbyID : steamManager.getLobbies()) {
+                for (const auto& lobbyID : roomManager.getLobbies()) {
                     std::string lobbyName = "房间 " + std::to_string(lobbyID.ConvertToUint64());
                     if (ImGui::Button(lobbyName.c_str())) {
-                        steamManager.joinLobby(lobbyID);
+                        roomManager.joinLobby(lobbyID);
                     }
                 }
             }

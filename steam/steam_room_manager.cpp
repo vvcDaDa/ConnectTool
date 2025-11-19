@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-SteamFriendsCallbacks::SteamFriendsCallbacks(SteamNetworkingManager *manager) : manager_(manager)
+SteamFriendsCallbacks::SteamFriendsCallbacks(SteamNetworkingManager *manager, SteamRoomManager *roomManager) : manager_(manager), roomManager_(roomManager)
 {
     std::cout << "SteamFriendsCallbacks constructor called" << std::endl;
 }
@@ -30,10 +30,10 @@ void SteamFriendsCallbacks::OnGameRichPresenceJoinRequested(GameRichPresenceJoin
                     {
                         manager_->joinHost(id);
                         // Start TCP Server if dependencies are set
-                        if (manager_->server_ && !(*manager_->server_))
+                        if (manager_->getServer() && !(*manager_->getServer()))
                         {
-                            *manager_->server_ = std::make_unique<TCPServer>(8888, manager_);
-                            if (!(*manager_->server_)->start())
+                            *manager_->getServer() = std::make_unique<TCPServer>(8888, manager_);
+                            if (!(*manager_->getServer())->start())
                             {
                                 std::cerr << "Failed to start TCP server" << std::endl;
                             }
@@ -52,7 +52,7 @@ void SteamFriendsCallbacks::OnGameRichPresenceJoinRequested(GameRichPresenceJoin
                     if (!manager_->isHost() && !manager_->isConnected())
                     {
                         std::cout << "Joining lobby from invite: " << id << std::endl;
-                        manager_->joinLobby(lobbySteamID);
+                        roomManager_->joinLobby(lobbySteamID);
                     }
                     else
                     {
@@ -86,7 +86,7 @@ void SteamFriendsCallbacks::OnGameLobbyJoinRequested(GameLobbyJoinRequested_t *p
         if (!manager_->isHost() && !manager_->isConnected())
         {
             std::cout << "Joining lobby from request: " << lobbyID.ConvertToUint64() << std::endl;
-            manager_->joinLobby(lobbyID);
+            roomManager_->joinLobby(lobbyID);
         }
         else
         {
@@ -99,16 +99,16 @@ void SteamFriendsCallbacks::OnGameLobbyJoinRequested(GameLobbyJoinRequested_t *p
     }
 }
 
-SteamMatchmakingCallbacks::SteamMatchmakingCallbacks(SteamNetworkingManager *manager) : manager_(manager) {}
+SteamMatchmakingCallbacks::SteamMatchmakingCallbacks(SteamNetworkingManager *manager, SteamRoomManager *roomManager) : manager_(manager), roomManager_(roomManager) {}
 
 void SteamMatchmakingCallbacks::OnLobbyCreated(LobbyCreated_t *pCallback)
 {
     if (pCallback->m_eResult == k_EResultOK)
     {
-        manager_->roomManager_->setCurrentLobby(pCallback->m_ulSteamIDLobby);
-        std::cout << "Lobby created: " << manager_->roomManager_->getCurrentLobby().ConvertToUint64() << std::endl;
+        roomManager_->setCurrentLobby(pCallback->m_ulSteamIDLobby);
+        std::cout << "Lobby created: " << roomManager_->getCurrentLobby().ConvertToUint64() << std::endl;
         // Set Rich Presence with lobby ID
-        std::string lobbyStr = std::to_string(manager_->roomManager_->getCurrentLobby().ConvertToUint64());
+        std::string lobbyStr = std::to_string(roomManager_->getCurrentLobby().ConvertToUint64());
         SteamFriends()->SetRichPresence("connect", lobbyStr.c_str());
         SteamFriends()->SetRichPresence("status", "主持游戏房间");
         SteamFriends()->SetRichPresence("steam_display", "#StatusWithConnectFormat");
@@ -122,11 +122,11 @@ void SteamMatchmakingCallbacks::OnLobbyCreated(LobbyCreated_t *pCallback)
 
 void SteamMatchmakingCallbacks::OnLobbyListReceived(LobbyMatchList_t *pCallback)
 {
-    manager_->roomManager_->clearLobbies();
+    roomManager_->clearLobbies();
     for (uint32 i = 0; i < pCallback->m_nLobbiesMatching; ++i)
     {
         CSteamID lobbyID = SteamMatchmaking()->GetLobbyByIndex(i);
-        manager_->roomManager_->addLobby(lobbyID);
+        roomManager_->addLobby(lobbyID);
     }
     std::cout << "Received " << pCallback->m_nLobbiesMatching << " lobbies" << std::endl;
 }
@@ -135,7 +135,7 @@ void SteamMatchmakingCallbacks::OnLobbyEntered(LobbyEnter_t *pCallback)
 {
     if (pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess)
     {
-        manager_->roomManager_->setCurrentLobby(pCallback->m_ulSteamIDLobby);
+        roomManager_->setCurrentLobby(pCallback->m_ulSteamIDLobby);
         std::cout << "Entered lobby: " << pCallback->m_ulSteamIDLobby << std::endl;
         // Only join host if not the host
         if (!manager_->isHost())
@@ -144,10 +144,10 @@ void SteamMatchmakingCallbacks::OnLobbyEntered(LobbyEnter_t *pCallback)
             if (manager_->joinHost(hostID.ConvertToUint64()))
             {
                 // Start TCP Server if dependencies are set
-                if (manager_->server_ && !(*manager_->server_))
+                if (manager_->getServer() && !(*manager_->getServer()))
                 {
-                    *manager_->server_ = std::make_unique<TCPServer>(8888, manager_);
-                    if (!(*manager_->server_)->start())
+                    *manager_->getServer() = std::make_unique<TCPServer>(8888, manager_);
+                    if (!(*manager_->getServer())->start())
                     {
                         std::cerr << "Failed to start TCP server" << std::endl;
                     }
@@ -165,8 +165,8 @@ SteamRoomManager::SteamRoomManager(SteamNetworkingManager *networkingManager)
     : networkingManager_(networkingManager), currentLobby(k_steamIDNil),
       steamFriendsCallbacks(nullptr), steamMatchmakingCallbacks(nullptr)
 {
-    steamFriendsCallbacks = new SteamFriendsCallbacks(networkingManager_);
-    steamMatchmakingCallbacks = new SteamMatchmakingCallbacks(networkingManager_);
+    steamFriendsCallbacks = new SteamFriendsCallbacks(networkingManager_, this);
+    steamMatchmakingCallbacks = new SteamMatchmakingCallbacks(networkingManager_, this);
 }
 
 SteamRoomManager::~SteamRoomManager()
@@ -227,11 +227,11 @@ bool SteamRoomManager::startHosting()
         return false;
     }
 
-    networkingManager_->hListenSock = networkingManager_->m_pInterface->CreateListenSocketP2P(0, 0, nullptr);
+    networkingManager_->getListenSock() = networkingManager_->getInterface()->CreateListenSocketP2P(0, 0, nullptr);
 
-    if (networkingManager_->hListenSock != k_HSteamListenSocket_Invalid)
+    if (networkingManager_->getListenSock() != k_HSteamListenSocket_Invalid)
     {
-        networkingManager_->g_isHost = true;
+        networkingManager_->getIsHost() = true;
         std::cout << "Created listen socket for hosting game room" << std::endl;
         // Rich Presence is set in OnLobbyCreated callback
         return true;
@@ -246,11 +246,11 @@ bool SteamRoomManager::startHosting()
 
 void SteamRoomManager::stopHosting()
 {
-    if (networkingManager_->hListenSock != k_HSteamListenSocket_Invalid)
+    if (networkingManager_->getListenSock() != k_HSteamListenSocket_Invalid)
     {
-        networkingManager_->m_pInterface->CloseListenSocket(networkingManager_->hListenSock);
-        networkingManager_->hListenSock = k_HSteamListenSocket_Invalid;
+        networkingManager_->getInterface()->CloseListenSocket(networkingManager_->getListenSock());
+        networkingManager_->getListenSock() = k_HSteamListenSocket_Invalid;
     }
     leaveLobby();
-    networkingManager_->g_isHost = false;
+    networkingManager_->getIsHost() = false;
 }

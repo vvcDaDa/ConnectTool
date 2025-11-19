@@ -5,28 +5,31 @@
 #include <mutex>
 
 class SteamNetworkingManager; // Forward declaration
+class SteamRoomManager; // Forward declaration for callbacks
 
 class SteamFriendsCallbacks
 {
 public:
-    SteamFriendsCallbacks(SteamNetworkingManager *manager);
+    SteamFriendsCallbacks(SteamNetworkingManager *manager, SteamRoomManager *roomManager);
     void OnGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t *pCallback);
     void OnGameLobbyJoinRequested(GameLobbyJoinRequested_t *pCallback);
 
 private:
     SteamNetworkingManager *manager_;
+    SteamRoomManager *roomManager_;
 };
 
 class SteamMatchmakingCallbacks
 {
 public:
-    SteamMatchmakingCallbacks(SteamNetworkingManager *manager);
+    SteamMatchmakingCallbacks(SteamNetworkingManager *manager, SteamRoomManager *roomManager);
     void OnLobbyCreated(LobbyCreated_t *pCallback);
     void OnLobbyListReceived(LobbyMatchList_t *pCallback);
     void OnLobbyEntered(LobbyEnter_t *pCallback);
 
 private:
     SteamNetworkingManager *manager_;
+    SteamRoomManager *roomManager_;
 };
 
 class SteamRoomManager

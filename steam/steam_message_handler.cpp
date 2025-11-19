@@ -57,35 +57,9 @@ void SteamMessageHandler::pollMessages() {
             ISteamNetworkingMessage* pIncomingMsg = pIncomingMsgs[i];
             const char* data = (const char*)pIncomingMsg->m_pData;
             size_t size = pIncomingMsg->m_cbSize;
-            // Normal forwarding
-            if (server_) {
-                server_->sendToAll((const char*)pIncomingMsg->m_pData, pIncomingMsg->m_cbSize);
-            }
-            // Lazy connect: Create TCP Client on first message if not already connected
-            if (clientMap_.find(conn) == clientMap_.end() && g_isHost_ && localPort_ > 0) {
-                auto client = std::make_shared<TCPClient>("localhost", localPort_);
-                if (client->connect()) {
-                    client->setReceiveCallback([conn, this](const char* data, size_t size) {
-                        std::lock_guard<std::mutex> lock(clientMutex_);
-                        m_pInterface_->SendMessageToConnection(conn, data, size, k_nSteamNetworkingSend_Reliable, nullptr);
-                    });
-                    client->setDisconnectCallback([conn, this]() {
-                        std::lock_guard<std::mutex> lock(clientMutex_);
-                        if (clientMap_.count(conn)) {
-                            clientMap_[conn]->disconnect();
-                            clientMap_.erase(conn);
-                            std::cout << "TCP client disconnected, removed from map" << std::endl;
-                        }
-                    });
-                    clientMap_[conn] = client;
-                    std::cout << "Created TCP Client for connection on first message" << std::endl;
-                } else {
-                    std::cerr << "Failed to connect TCP Client for connection" << std::endl;
-                }
-            }
-            // Send to corresponding TCP client if exists (for host)
-            if (clientMap_.count(conn)) {
-                clientMap_[conn]->send((const char*)pIncomingMsg->m_pData, pIncomingMsg->m_cbSize);
+            // Handle tunnel packets with multiplexing
+            if (server_ && server_->getMultiplexManager()) {
+                server_->getMultiplexManager()->handleTunnelPacket(data, size);
             }
             pIncomingMsg->Release();
         }
