@@ -1,0 +1,64 @@
+# C++ build artifacts
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.lai
+*.la
+*.lo
+*.gch
+*.pch
+*.mod
+*.smod
+
+# Build directories
+build/
+_build/
+cmake-build*/
+out/
+bin/
+Debug/
+Release/
+x64/
+x86/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CMakeDoxyfile.in
+CMakeDoxyfile
+CTestTestfile.cmake
+CMakeScripts/
+
+# Dependencies
+deps/
+third-party/
+external/
+
+# IDEs and editors
+.vscode/
+.vs/
+.idea/
+*.swp
+*.swo
+*.swn
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Steamworks
+steamworks/
