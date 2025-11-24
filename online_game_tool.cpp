@@ -364,11 +364,6 @@ int main()
 
         // Create a window for online game tool
         ImGui::Begin("在线游戏工具");
-        if (server)
-        {
-            ImGui::Text("TCP服务器监听端口8888");
-            ImGui::Text("已连接客户端: %d", server->getClientCount());
-        }
         ImGui::Separator();
 
         if (!steamManager.isHost() && !steamManager.isConnected())
