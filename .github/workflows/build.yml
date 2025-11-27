@@ -40,7 +40,8 @@ jobs:
     - name: Install Dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install glfw boost
+        brew install glfw
+        brew install boost
 
     - name: Install Dependencies (Windows)
       if: runner.os == 'Windows'
@@ -53,6 +54,7 @@ jobs:
         git submodule update --init --recursive --depth 1
 
     - name: Check Steamworks SDK
+      shell: bash
       run: |
         if [ ! -d "sdk" ]; then
           echo "::error::'sdk' directory not found. Please ensure the Steamworks SDK is present in the 'sdk' folder."
@@ -64,10 +66,15 @@ jobs:
       run: |
         cmake -G "Visual Studio 17 2022" -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" ${{ matrix.cmake_args }}
 
-    - name: Configure CMake (Linux/macOS)
-      if: runner.os != 'Windows'
+    - name: Configure CMake (Linux)
+      if: runner.os == 'Linux'
       run: |
         cmake -B build -S . ${{ matrix.cmake_args }}
+
+    - name: Configure CMake (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        cmake -B build -S . -DBoost_NO_BOOST_CMAKE=ON ${{ matrix.cmake_args }}
 
     - name: Build
       run: cmake --build build --config Release

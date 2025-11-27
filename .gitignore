@@ -34,21 +34,6 @@ CMakeFiles/
 Makefile
 cmake_install.cmake
 install_manifest.txt
-compile_commands.json
-CMakeDoxyfile.in
-CMakeDoxyfile
-CTestTestfile.cmake
-CMakeScripts/
-
-# Dependencies
-deps/
-third-party/
-external/
-
-# IDEs and editors
-.vscode/
-.vs/
-.idea/
 *.swp
 *.swo
 *.swn

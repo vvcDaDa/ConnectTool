@@ -64,23 +64,14 @@ elseif(WIN32)
     message(STATUS "Building TUN module for Windows (Wintun)")
 endif()
 
-# Source files - check if using ConnectTool/ subdirectory or root
-if(EXISTS "${CMAKE_SOURCE_DIR}/ConnectTool/online_game_tool.cpp")
-    set(SOURCE_PREFIX "ConnectTool/")
-else()
-    set(SOURCE_PREFIX "")
-endif()
-
 # Add Online Game Tool executable
 add_executable(OnlineGameTool 
-    ${SOURCE_PREFIX}online_game_tool.cpp 
-    ${SOURCE_PREFIX}steam/steam_message_handler.cpp 
-    ${SOURCE_PREFIX}steam/steam_networking_manager.cpp 
-    ${SOURCE_PREFIX}steam/steam_room_manager.cpp 
-    ${SOURCE_PREFIX}steam/steam_utils.cpp 
-    ${SOURCE_PREFIX}steam/steam_vpn_bridge.cpp
-    ${SOURCE_PREFIX}net/tcp_server.cpp 
-    ${SOURCE_PREFIX}net/multiplex_manager.cpp
+    online_game_tool.cpp 
+    steam/steam_message_handler.cpp 
+    steam/steam_networking_manager.cpp 
+    steam/steam_room_manager.cpp 
+    steam/steam_utils.cpp 
+    steam/steam_vpn_bridge.cpp
     ${TUN_SOURCES}
 )
 
@@ -93,7 +84,6 @@ endif()
 target_include_directories(OnlineGameTool PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/steam
-    ${CMAKE_SOURCE_DIR}/net
     ${CMAKE_SOURCE_DIR}/third_party/nanoid_cpp/inc
     ${CMAKE_SOURCE_DIR}/tun
     ${STEAMWORKS_DIR}/public/steam
